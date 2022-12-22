@@ -1,0 +1,28 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.154.0/containers/docker-existing-dockerfile
+{
+	"name": "rq",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".",
+		"args": {},
+		"target": "devcontainer"
+	},
+	"containerUser": "vscode",
+	"remoteUser": "vscode",
+	"updateRemoteUserUID": true,
+	"mounts": [
+		"source=${localWorkspaceFolder}/.devcontainer/.extensions,target=/home/vscode/.vscode-server/extensions,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer/.go,target=/home/vscode/go,type=bind"
+	],
+	"forwardPorts": [],
+	"runArgs": [
+		"--init",
+		"--net=host"
+	],
+	"extensions": [
+		"golang.go",
+		"jgclark.vscode-todo-highlight",
+		"streetsidesoftware.code-spell-checker"
+	]
+}
