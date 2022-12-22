@@ -1,6 +1,7 @@
 package rq
 
 import (
+	"net/url"
 	"reflect"
 	"strconv"
 
@@ -32,4 +33,13 @@ func QueryBool[Bool ~bool](key string, value Bool) Option {
 // float型のURLクエリをセットする。
 func QueryFloat[Float constraints.Float](key string, value Float) Option {
 	return Query(key, strconv.FormatFloat(float64(value), 'f', -1, reflect.TypeOf(value).Bits()))
+}
+
+// url.Values型のURLクエリをセットする。
+func QueryValues(values url.Values) Option {
+	return OptionFunc(func(r *Request) {
+		for key, value := range values {
+			r.query[key] = value
+		}
+	})
 }

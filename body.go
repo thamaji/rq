@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/url"
 )
 
 // リクエストボディをセットする。
@@ -39,8 +40,24 @@ func BodyJSON[V any](body V) Option {
 
 		r.With(
 			ContentType("application/json").Charset("UTF-8"),
-			ContentLength(len(b)),
 			BodyBytes(b),
 		)
+	})
+}
+
+// x-www-form-urlencodedのリクエストボディをセットする。
+func BodyFormURLEncoded(form url.Values) Option {
+	return OptionFunc(func(r *Request) {
+		r.With(
+			ContentType("application/x-www-form-urlencoded").Charset("UTF-8"),
+			BodyString(form.Encode()),
+		)
+	})
+}
+
+// 関数の実行結果をリクエストボディとしてセットする。
+func BodyFunc(f func() (io.Reader, error)) Option {
+	return OptionFunc(func(r *Request) {
+		r.body, r.err = f()
 	})
 }

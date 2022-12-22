@@ -12,3 +12,4 @@ func URL(url string, elem ...string) string {
 	}
 	return strings.TrimSuffix(url, "/") + "/" + strings.TrimPrefix(path.Join(elem...), "/")
 }
+

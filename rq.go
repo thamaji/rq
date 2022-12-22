@@ -143,6 +143,7 @@ func (r *Request) Do() (*http.Response, error) {
 
 	if r.postHook != nil {
 		if err := r.postHook(response); err != nil {
+			response.Body.Close()
 			return nil, err
 		}
 	}
