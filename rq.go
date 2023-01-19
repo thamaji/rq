@@ -2,6 +2,7 @@ package rq
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -81,6 +82,7 @@ type Request struct {
 	query  _url.Values
 	header http.Header
 	client *http.Client
+	ctx    context.Context
 }
 
 // リクエストにオプションを適用する。
@@ -110,6 +112,10 @@ func (r *Request) Do() (*http.Response, error) {
 	request, err := http.NewRequest(r.method, url.String(), r.body)
 	if err != nil {
 		return nil, err
+	}
+
+	if r.ctx != nil {
+		request.WithContext(r.ctx)
 	}
 
 	if request.Header == nil {
