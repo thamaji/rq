@@ -11,62 +11,62 @@ import (
 
 // GETメソッドのリクエストをつくる。
 func Get(url string, options ...Option) *Request {
-	return New(http.MethodGet, url, options...)
+	return NewRequest(http.MethodGet, url, options...)
 }
 
 // HEADメソッドのリクエストをつくる。
 func Head(url string, options ...Option) *Request {
-	return New(http.MethodHead, url, options...)
+	return NewRequest(http.MethodHead, url, options...)
 }
 
 // POSTメソッドのリクエストをつくる。
 func Post(url string, options ...Option) *Request {
-	return New(http.MethodPost, url, options...)
+	return NewRequest(http.MethodPost, url, options...)
 }
 
 // PUTメソッドのリクエストをつくる。
 func Put(url string, options ...Option) *Request {
-	return New(http.MethodPut, url, options...)
+	return NewRequest(http.MethodPut, url, options...)
 }
 
 // PATCHメソッドのリクエストをつくる。
 func Patch(url string, options ...Option) *Request {
-	return New(http.MethodPatch, url, options...)
+	return NewRequest(http.MethodPatch, url, options...)
 }
 
 // DELETEメソッドのリクエストをつくる。
 func Delete(url string, options ...Option) *Request {
-	return New(http.MethodDelete, url, options...)
+	return NewRequest(http.MethodDelete, url, options...)
 }
 
 // CONNECTメソッドのリクエストをつくる。
 func Connect(url string, options ...Option) *Request {
-	return New(http.MethodConnect, url, options...)
+	return NewRequest(http.MethodConnect, url, options...)
 }
 
 // OPTIONSメソッドのリクエストをつくる。
 func Options(url string, options ...Option) *Request {
-	return New(http.MethodOptions, url, options...)
+	return NewRequest(http.MethodOptions, url, options...)
 }
 
 // TRACEメソッドのリクエストをつくる。
 func Trace(url string, options ...Option) *Request {
-	return New(http.MethodTrace, url, options...)
+	return NewRequest(http.MethodTrace, url, options...)
 }
 
 // リクエストをつくる。
-func New(method string, url string, options ...Option) *Request {
+func NewRequest(method string, url string, options ...Option) *Request {
 	r := &Request{
-		method: method,
-		url:    url,
-		body:   nil,
-		err:    nil,
-		query:  _url.Values{},
-		header: http.Header{},
-		client: http.DefaultClient,
+		method:       method,
+		url:          url,
+		body:         nil,
+		err:          nil,
+		errBodyLimit: 4096,
+		query:        _url.Values{},
+		header:       http.Header{},
+		client:       http.DefaultClient,
 	}
-	r.With(options...)
-	return r
+	return r.With(options...)
 }
 
 // リクエスト。
@@ -76,8 +76,10 @@ type Request struct {
 	body   io.Reader
 	err    error
 
-	preHook  func(*http.Request) error
-	postHook func(*http.Response) error
+	errBodyLimit int64
+
+	preHook  []func(*http.Request) (*http.Request, error)
+	postHook []func(*http.Response) (*http.Response, error)
 
 	query  _url.Values
 	header http.Header
@@ -86,10 +88,11 @@ type Request struct {
 }
 
 // リクエストにオプションを適用する。
-func (r *Request) With(options ...Option) {
+func (r *Request) With(options ...Option) *Request {
 	for _, option := range options {
 		option.Apply(r)
 	}
+	return r
 }
 
 // リクエストを実行してレスポンスを返す。
@@ -125,8 +128,9 @@ func (r *Request) Do() (*http.Response, error) {
 		request.Header[k] = v
 	}
 
-	if r.preHook != nil {
-		if err := r.preHook(request); err != nil {
+	for _, hook := range r.preHook {
+		request, err = hook(request)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -147,8 +151,9 @@ func (r *Request) Do() (*http.Response, error) {
 		},
 	}
 
-	if r.postHook != nil {
-		if err := r.postHook(response); err != nil {
+	for _, hook := range r.postHook {
+		response, err = hook(response)
+		if err != nil {
 			response.Body.Close()
 			return nil, err
 		}
@@ -164,8 +169,9 @@ func (r *Request) Open() (io.ReadCloser, error) {
 		return nil, err
 	}
 	if response.StatusCode >= 400 {
+		err := responseError(response, r.errBodyLimit, statusCodeError(response.StatusCode))
 		response.Body.Close()
-		return nil, StatusError(response.StatusCode)
+		return nil, err
 	}
 
 	return response.Body, nil
@@ -206,4 +212,16 @@ func (r *Request) FetchJSON(v any) error {
 		err = err1
 	}
 	return err
+}
+
+type readCloser struct {
+	read  func([]byte) (int, error)
+	close func() error
+}
+
+func (rc readCloser) Read(p []byte) (int, error) {
+	return rc.read(p)
+}
+func (rc readCloser) Close() error {
+	return rc.close()
 }

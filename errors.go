@@ -1,136 +1,132 @@
 package rq
 
 import (
-	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 var (
-	ErrBadRequest                    = errors.New(http.StatusText(http.StatusBadRequest))
-	ErrUnauthorized                  = errors.New(http.StatusText(http.StatusUnauthorized))
-	ErrPaymentRequired               = errors.New(http.StatusText(http.StatusPaymentRequired))
-	ErrForbidden                     = errors.New(http.StatusText(http.StatusForbidden))
-	ErrNotFound                      = errors.New(http.StatusText(http.StatusNotFound))
-	ErrMethodNotAllowed              = errors.New(http.StatusText(http.StatusMethodNotAllowed))
-	ErrNotAcceptable                 = errors.New(http.StatusText(http.StatusNotAcceptable))
-	ErrProxyAuthRequired             = errors.New(http.StatusText(http.StatusProxyAuthRequired))
-	ErrRequestTimeout                = errors.New(http.StatusText(http.StatusRequestTimeout))
-	ErrConflict                      = errors.New(http.StatusText(http.StatusConflict))
-	ErrGone                          = errors.New(http.StatusText(http.StatusGone))
-	ErrLengthRequired                = errors.New(http.StatusText(http.StatusLengthRequired))
-	ErrPreconditionFailed            = errors.New(http.StatusText(http.StatusPreconditionFailed))
-	ErrRequestEntityTooLarge         = errors.New(http.StatusText(http.StatusRequestEntityTooLarge))
-	ErrRequestURITooLong             = errors.New(http.StatusText(http.StatusRequestURITooLong))
-	ErrUnsupportedMediaType          = errors.New(http.StatusText(http.StatusUnsupportedMediaType))
-	ErrRequestedRangeNotSatisfiable  = errors.New(http.StatusText(http.StatusRequestedRangeNotSatisfiable))
-	ErrExpectationFailed             = errors.New(http.StatusText(http.StatusExpectationFailed))
-	ErrTeapot                        = errors.New(http.StatusText(http.StatusTeapot))
-	ErrMisdirectedRequest            = errors.New(http.StatusText(http.StatusMisdirectedRequest))
-	ErrUnprocessableEntity           = errors.New(http.StatusText(http.StatusUnprocessableEntity))
-	ErrLocked                        = errors.New(http.StatusText(http.StatusLocked))
-	ErrFailedDependency              = errors.New(http.StatusText(http.StatusFailedDependency))
-	ErrTooEarly                      = errors.New(http.StatusText(http.StatusTooEarly))
-	ErrUpgradeRequired               = errors.New(http.StatusText(http.StatusUpgradeRequired))
-	ErrPreconditionRequired          = errors.New(http.StatusText(http.StatusPreconditionRequired))
-	ErrTooManyRequests               = errors.New(http.StatusText(http.StatusTooManyRequests))
-	ErrRequestHeaderFieldsTooLarge   = errors.New(http.StatusText(http.StatusRequestHeaderFieldsTooLarge))
-	ErrUnavailableForLegalReasons    = errors.New(http.StatusText(http.StatusUnavailableForLegalReasons))
-	ErrInternalServerError           = errors.New(http.StatusText(http.StatusInternalServerError))
-	ErrNotImplemented                = errors.New(http.StatusText(http.StatusNotImplemented))
-	ErrBadGateway                    = errors.New(http.StatusText(http.StatusBadGateway))
-	ErrServiceUnavailable            = errors.New(http.StatusText(http.StatusServiceUnavailable))
-	ErrGatewayTimeout                = errors.New(http.StatusText(http.StatusGatewayTimeout))
-	ErrHTTPVersionNotSupported       = errors.New(http.StatusText(http.StatusHTTPVersionNotSupported))
-	ErrVariantAlsoNegotiates         = errors.New(http.StatusText(http.StatusVariantAlsoNegotiates))
-	ErrInsufficientStorage           = errors.New(http.StatusText(http.StatusInsufficientStorage))
-	ErrLoopDetected                  = errors.New(http.StatusText(http.StatusLoopDetected))
-	ErrNotExtended                   = errors.New(http.StatusText(http.StatusNotExtended))
-	ErrNetworkAuthenticationRequired = errors.New(http.StatusText(http.StatusNetworkAuthenticationRequired))
+	ErrBadRequest                    = statusCodeError(http.StatusBadRequest)
+	ErrUnauthorized                  = statusCodeError(http.StatusUnauthorized)
+	ErrPaymentRequired               = statusCodeError(http.StatusPaymentRequired)
+	ErrForbidden                     = statusCodeError(http.StatusForbidden)
+	ErrNotFound                      = statusCodeError(http.StatusNotFound)
+	ErrMethodNotAllowed              = statusCodeError(http.StatusMethodNotAllowed)
+	ErrNotAcceptable                 = statusCodeError(http.StatusNotAcceptable)
+	ErrProxyAuthRequired             = statusCodeError(http.StatusProxyAuthRequired)
+	ErrRequestTimeout                = statusCodeError(http.StatusRequestTimeout)
+	ErrConflict                      = statusCodeError(http.StatusConflict)
+	ErrGone                          = statusCodeError(http.StatusGone)
+	ErrLengthRequired                = statusCodeError(http.StatusLengthRequired)
+	ErrPreconditionFailed            = statusCodeError(http.StatusPreconditionFailed)
+	ErrRequestEntityTooLarge         = statusCodeError(http.StatusRequestEntityTooLarge)
+	ErrRequestURITooLong             = statusCodeError(http.StatusRequestURITooLong)
+	ErrUnsupportedMediaType          = statusCodeError(http.StatusUnsupportedMediaType)
+	ErrRequestedRangeNotSatisfiable  = statusCodeError(http.StatusRequestedRangeNotSatisfiable)
+	ErrExpectationFailed             = statusCodeError(http.StatusExpectationFailed)
+	ErrTeapot                        = statusCodeError(http.StatusTeapot)
+	ErrMisdirectedRequest            = statusCodeError(http.StatusMisdirectedRequest)
+	ErrUnprocessableEntity           = statusCodeError(http.StatusUnprocessableEntity)
+	ErrLocked                        = statusCodeError(http.StatusLocked)
+	ErrFailedDependency              = statusCodeError(http.StatusFailedDependency)
+	ErrTooEarly                      = statusCodeError(http.StatusTooEarly)
+	ErrUpgradeRequired               = statusCodeError(http.StatusUpgradeRequired)
+	ErrPreconditionRequired          = statusCodeError(http.StatusPreconditionRequired)
+	ErrTooManyRequests               = statusCodeError(http.StatusTooManyRequests)
+	ErrRequestHeaderFieldsTooLarge   = statusCodeError(http.StatusRequestHeaderFieldsTooLarge)
+	ErrUnavailableForLegalReasons    = statusCodeError(http.StatusUnavailableForLegalReasons)
+	ErrInternalServerError           = statusCodeError(http.StatusInternalServerError)
+	ErrNotImplemented                = statusCodeError(http.StatusNotImplemented)
+	ErrBadGateway                    = statusCodeError(http.StatusBadGateway)
+	ErrServiceUnavailable            = statusCodeError(http.StatusServiceUnavailable)
+	ErrGatewayTimeout                = statusCodeError(http.StatusGatewayTimeout)
+	ErrHTTPVersionNotSupported       = statusCodeError(http.StatusHTTPVersionNotSupported)
+	ErrVariantAlsoNegotiates         = statusCodeError(http.StatusVariantAlsoNegotiates)
+	ErrInsufficientStorage           = statusCodeError(http.StatusInsufficientStorage)
+	ErrLoopDetected                  = statusCodeError(http.StatusLoopDetected)
+	ErrNotExtended                   = statusCodeError(http.StatusNotExtended)
+	ErrNetworkAuthenticationRequired = statusCodeError(http.StatusNetworkAuthenticationRequired)
 )
 
-func StatusError(code int) error {
-	switch code {
-	default:
-		return nil
-	case http.StatusBadRequest:
-		return ErrBadRequest
-	case http.StatusUnauthorized:
-		return ErrUnauthorized
-	case http.StatusPaymentRequired:
-		return ErrPaymentRequired
-	case http.StatusForbidden:
-		return ErrForbidden
-	case http.StatusNotFound:
-		return ErrNotFound
-	case http.StatusMethodNotAllowed:
-		return ErrMethodNotAllowed
-	case http.StatusNotAcceptable:
-		return ErrNotAcceptable
-	case http.StatusProxyAuthRequired:
-		return ErrProxyAuthRequired
-	case http.StatusRequestTimeout:
-		return ErrRequestTimeout
-	case http.StatusConflict:
-		return ErrConflict
-	case http.StatusGone:
-		return ErrGone
-	case http.StatusLengthRequired:
-		return ErrLengthRequired
-	case http.StatusPreconditionFailed:
-		return ErrPreconditionFailed
-	case http.StatusRequestEntityTooLarge:
-		return ErrRequestEntityTooLarge
-	case http.StatusRequestURITooLong:
-		return ErrRequestURITooLong
-	case http.StatusUnsupportedMediaType:
-		return ErrUnsupportedMediaType
-	case http.StatusRequestedRangeNotSatisfiable:
-		return ErrRequestedRangeNotSatisfiable
-	case http.StatusExpectationFailed:
-		return ErrExpectationFailed
-	case http.StatusTeapot:
-		return ErrTeapot
-	case http.StatusMisdirectedRequest:
-		return ErrMisdirectedRequest
-	case http.StatusUnprocessableEntity:
-		return ErrUnprocessableEntity
-	case http.StatusLocked:
-		return ErrLocked
-	case http.StatusFailedDependency:
-		return ErrFailedDependency
-	case http.StatusTooEarly:
-		return ErrTooEarly
-	case http.StatusUpgradeRequired:
-		return ErrUpgradeRequired
-	case http.StatusPreconditionRequired:
-		return ErrPreconditionRequired
-	case http.StatusTooManyRequests:
-		return ErrTooManyRequests
-	case http.StatusRequestHeaderFieldsTooLarge:
-		return ErrRequestHeaderFieldsTooLarge
-	case http.StatusUnavailableForLegalReasons:
-		return ErrUnavailableForLegalReasons
-	case http.StatusInternalServerError:
-		return ErrInternalServerError
-	case http.StatusNotImplemented:
-		return ErrNotImplemented
-	case http.StatusBadGateway:
-		return ErrBadGateway
-	case http.StatusServiceUnavailable:
-		return ErrServiceUnavailable
-	case http.StatusGatewayTimeout:
-		return ErrGatewayTimeout
-	case http.StatusHTTPVersionNotSupported:
-		return ErrHTTPVersionNotSupported
-	case http.StatusVariantAlsoNegotiates:
-		return ErrVariantAlsoNegotiates
-	case http.StatusInsufficientStorage:
-		return ErrInsufficientStorage
-	case http.StatusLoopDetected:
-		return ErrLoopDetected
-	case http.StatusNotExtended:
-		return ErrNotExtended
-	case http.StatusNetworkAuthenticationRequired:
-		return ErrNetworkAuthenticationRequired
+func statusCodeError(statusCode int) error {
+	return &StatusCodeError{StatusCode: statusCode}
+}
+
+type StatusCodeError struct {
+	StatusCode int
+}
+
+func (err *StatusCodeError) Error() string {
+	return fmt.Sprintf("invalid status code: %d %s", err.StatusCode, http.StatusText(err.StatusCode))
+}
+
+func (err *StatusCodeError) Is(target error) bool {
+	if x, ok := target.(*StatusCodeError); ok {
+		return err.StatusCode == x.StatusCode
 	}
+	return false
+}
+
+// ResponseError発生時に読み取るBodyの最大サイズをセットする。
+func ErrBodyLimit(limit int64) Option {
+	return OptionFunc(func(r *Request) {
+		r.errBodyLimit = limit
+	})
+}
+
+func responseError(response *http.Response, limit int64, err error) error {
+	body, _ := io.ReadAll(io.LimitReader(response.Body, limit))
+	return &ResponseError{
+		Method:     response.Request.Method,
+		URL:        response.Request.URL,
+		StatusCode: response.StatusCode,
+		Header:     response.Header,
+		Body:       body,
+		err:        err,
+	}
+}
+
+type ResponseError struct {
+	Method     string
+	URL        *url.URL
+	StatusCode int
+	Header     http.Header
+	Body       []byte
+	err        error
+}
+
+func (err *ResponseError) Error() string {
+	method := err.Method
+	if method == "" {
+		method = "Get"
+	} else {
+		method = err.Method[:1] + strings.ToLower(err.Method)[1:]
+	}
+
+	url := err.URL.String()
+	if _, ok := err.URL.User.Password(); ok {
+		url = strings.Replace(url, err.URL.User.String()+"@", err.URL.User.Username()+":***@", 1)
+	}
+
+	return fmt.Sprintf("%s %q: %s", method, url, err.err.Error())
+}
+
+func (err *ResponseError) Unwrap() error {
+	return err.err
+}
+
+func AsResponseError(err error) (*ResponseError, bool) {
+	e, ok := err.(*ResponseError)
+	return e, ok
+}
+
+func MapResponseError(err error, fn func(*ResponseError) error) error {
+	e, ok := err.(*ResponseError)
+	if ok {
+		return fn(e)
+	}
+	return e
 }

@@ -1,55 +1,46 @@
 {
     "terminal.integrated.allowChords": false,
+
     "files.exclude": {
-        "**/.devcontainer/.extensions": true,
-        "**/.devcontainer/.go": true
+        "**/vendor/": true
     },
     "files.watcherExclude": {
-        "**/.devcontainer/.extensions": true,
-        "**/.devcontainer/.go": true
+        "**/vendor/": true
     },
     "search.exclude": {
-        "**/.devcontainer/.extensions": true,
-        "**/.devcontainer/.go": true
+        "**/.devcontainer": true,
+        "**/.vscode": true,
+        "**/vendor/": true
     },
-    "files.autoSave": "afterDelay",
-    "files.autoSaveDelay": 1000,
+
+    // Golang
     "go.useLanguageServer": true,
-    "go.autocompleteUnimportedPackages": true,
     "go.formatTool": "goimports",
+    "go.lintOnSave": "workspace",
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
         "--fast",
         "-exclude=vendor/..."
     ],
-    "go.lintOnSave": "workspace",
-    "go.buildOnSave": "workspace",
     "go.vetOnSave": "workspace",
+    "go.vetFlags": [
+		"-all"
+	],
     "[go]": {
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-            "source.organizeImports": true,
+            "source.organizeImports": "explicit"
         },
         "editor.snippetSuggestions": "bottom"
     },
     "[go.mod]": {
         "editor.formatOnSave": true,
         "editor.codeActionsOnSave": {
-            "source.organizeImports": true,
+            "source.organizeImports": "explicit"
         }
     },
     "gopls": {
         "usePlaceholders": true,
-        "staticcheck": false,
-    },
-    "cSpell.ignorePaths": [
-        "**/.git/objects/**",
-        "**/.devcontainer/**",
-        "**/.vscode/**",
-        "**/go.mod"
-    ],
-    "cSpell.words": [
-        "etag",
-        "thamaji"
-    ]
+        "staticcheck": false
+    }
 }
