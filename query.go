@@ -4,8 +4,6 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
-
-	"golang.org/x/exp/constraints"
 )
 
 // string型のURLクエリをセットする。
@@ -16,12 +14,12 @@ func Query[String ~string](key string, value String) Option {
 }
 
 // int型のURLクエリをセットする。
-func QueryInt[Int constraints.Signed](key string, value Int) Option {
+func QueryInt[Int ~int | ~int8 | ~int16 | ~int32 | ~int64](key string, value Int) Option {
 	return Query(key, strconv.FormatInt(int64(value), 10))
 }
 
 // uint型のURLクエリをセットする。
-func QueryUint[Uint constraints.Unsigned](key string, value Uint) Option {
+func QueryUint[Uint ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr](key string, value Uint) Option {
 	return Query(key, strconv.FormatUint(uint64(value), 10))
 }
 
@@ -31,7 +29,7 @@ func QueryBool[Bool ~bool](key string, value Bool) Option {
 }
 
 // float型のURLクエリをセットする。
-func QueryFloat[Float constraints.Float](key string, value Float) Option {
+func QueryFloat[Float ~float32 | ~float64](key string, value Float) Option {
 	return Query(key, strconv.FormatFloat(float64(value), 'f', -1, reflect.TypeOf(value).Bits()))
 }
 

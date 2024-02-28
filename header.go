@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/constraints"
 )
 
 // string型のHTTPリクエストヘッダをセットする。
@@ -19,12 +17,12 @@ func Header[String ~string](key string, value String) Option {
 }
 
 // int型のHTTPリクエストヘッダをセットする。
-func HeaderInt[Int constraints.Signed](key string, value Int) Option {
+func HeaderInt[Int ~int | ~int8 | ~int16 | ~int32 | ~int64](key string, value Int) Option {
 	return Header(key, strconv.FormatInt(int64(value), 10))
 }
 
 // uint型のHTTPリクエストヘッダをセットする。
-func HeaderUint[Uint constraints.Unsigned](key string, value Uint) Option {
+func HeaderUint[Uint ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr](key string, value Uint) Option {
 	return Header(key, strconv.FormatUint(uint64(value), 10))
 }
 
@@ -34,7 +32,7 @@ func HeaderBool[Bool ~bool](key string, value Bool) Option {
 }
 
 // float型のHTTPリクエストヘッダをセットする。
-func HeaderFloat[Float constraints.Float](key string, value Float) Option {
+func HeaderFloat[Float ~float32 | ~float64](key string, value Float) Option {
 	return Header(key, strconv.FormatFloat(float64(value), 'f', -1, reflect.TypeOf(value).Bits()))
 }
 

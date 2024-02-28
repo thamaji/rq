@@ -30,7 +30,7 @@ func BodyString(body string) Option {
 }
 
 // JSONのリクエストボディをセットする。
-func BodyJSON[V any](body V) Option {
+func BodyJSON(body any) Option {
 	return OptionFunc(func(r *Request) {
 		b, err := json.Marshal(body)
 		if err != nil {
