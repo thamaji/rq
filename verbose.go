@@ -11,18 +11,18 @@ import (
 func Verbose(w io.Writer) Option {
 	return OptionFunc(func(r *Request) {
 		r.With(
-			PreHook(func(request *http.Request) (*http.Request, error) {
+			PreHook(func(request *http.Request) error {
 				fmt.Fprintln(w, ">", request.Method, request.URL.Path, request.Proto)
 				fmt.Fprintln(w, ">", "Host:", request.Host)
 				for k := range request.Header {
 					fmt.Fprintln(w, ">", k+":", request.Header.Get(k))
 				}
-				return request, nil
+				return nil
 			}),
-			PostHook(func(response *http.Response) (*http.Response, error) {
+			PostHook(func(response *http.Response) error {
 				body, err := io.ReadAll(response.Body)
 				if err != nil {
-					return nil, err
+					return err
 				}
 				response.Body = io.NopCloser(bytes.NewReader(body))
 
@@ -32,7 +32,7 @@ func Verbose(w io.Writer) Option {
 				}
 				fmt.Fprintln(w, "<")
 				fmt.Fprintln(w, string(body))
-				return response, nil
+				return nil
 			}),
 		)
 	})

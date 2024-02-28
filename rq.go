@@ -78,8 +78,8 @@ type Request struct {
 
 	errBodyLimit int64
 
-	preHook  []func(*http.Request) (*http.Request, error)
-	postHook []func(*http.Response) (*http.Response, error)
+	preHook  []func(*http.Request) error
+	postHook []func(*http.Response) error
 
 	query  _url.Values
 	header http.Header
@@ -129,8 +129,7 @@ func (r *Request) Do() (*http.Response, error) {
 	}
 
 	for _, hook := range r.preHook {
-		request, err = hook(request)
-		if err != nil {
+		if err := hook(request); err != nil {
 			return nil, err
 		}
 	}
@@ -152,8 +151,7 @@ func (r *Request) Do() (*http.Response, error) {
 	}
 
 	for _, hook := range r.postHook {
-		response, err = hook(response)
-		if err != nil {
+		if err := hook(response); err != nil {
 			response.Body.Close()
 			return nil, err
 		}
