@@ -1,3 +1,3 @@
 module github.com/thamaji/rq
 
-go 1.18
+go 1.27

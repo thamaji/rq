@@ -73,7 +73,7 @@ RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
         zip
 
 # install golang
-ARG GO_VERSION=1.18.10
+ARG GO_VERSION=1.27.1
 RUN --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update \

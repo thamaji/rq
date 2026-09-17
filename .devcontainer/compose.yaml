@@ -8,7 +8,7 @@ services:
         UBUNTU_VERSION: 22.04
         APT_MIRROR: http://jp.archive.ubuntu.com/ubuntu/
         USERNAME: vscode
-        GO_VERSION: 1.18.10
+        GO_VERSION: 1.27.1
         NODE_VERSION: 20.11.0
         YARN_VERSION: 1.22.19
       dockerfile: Dockerfile
