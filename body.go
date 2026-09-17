@@ -2,7 +2,7 @@ package rq
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"io"
 	"net/url"
 )
@@ -30,9 +30,9 @@ func BodyString(body string) Option {
 }
 
 // JSONのリクエストボディをセットする。
-func BodyJSON(body any) Option {
+func BodyJSON(body any, opts ...json.Options) Option {
 	return OptionFunc(func(r *Request) {
-		b, err := json.Marshal(body)
+		b, err := json.Marshal(body, opts...)
 		if err != nil {
 			r.err = err
 			return

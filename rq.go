@@ -3,7 +3,8 @@ package rq
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"io"
 	"net/http"
 	_url "net/url"
@@ -199,13 +200,14 @@ func (r *Request) Fetch() ([]byte, error) {
 }
 
 // リクエストを実行してレスポンスボディのJSONをパースする。
-func (r *Request) FetchJSON(v any) error {
+func (r *Request) FetchJSON(v any, opts ...json.Options) error {
 	r.With(Accept("application/json"))
 	body, err := r.Open()
 	if err != nil {
 		return err
 	}
-	err = json.NewDecoder(body).Decode(v)
+
+	err = json.UnmarshalDecode(jsontext.NewDecoder(body, opts...), v)
 	if err1 := body.Close(); err == nil {
 		err = err1
 	}
