@@ -21,6 +21,7 @@ func Verbose(w io.Writer) Option {
 			}),
 			PostHook(func(response *http.Response) error {
 				body, err := io.ReadAll(response.Body)
+				_ = response.Body.Close()
 				if err != nil {
 					return err
 				}

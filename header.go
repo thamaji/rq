@@ -39,7 +39,7 @@ func HeaderFloat[Float ~float32 | ~float64](key string, value Float) Option {
 type queryValue float64
 
 func (q queryValue) String() string {
-	return strconv.FormatFloat(float64(q), 'f', 2, 64)
+	return strconv.FormatFloat(float64(q), 'f', 3, 64)
 }
 
 // Acceptヘッダをセットする。
@@ -60,10 +60,7 @@ func (option AcceptOption) MediaType(mediaType string, q float64) AcceptOption {
 	if v != "" {
 		v += ", "
 	}
-	v += mediaType
-	if q != 0 {
-		v += ";" + queryValue(q).String()
-	}
+	v += mediaType + ";q=" + queryValue(q).String()
 	return AcceptOption{v}
 }
 
@@ -85,10 +82,7 @@ func (option AcceptCharsetOption) Charset(charset string, q float64) AcceptChars
 	if v != "" {
 		v += ", "
 	}
-	v += charset
-	if q != 0 {
-		v += ";" + queryValue(q).String()
-	}
+	v += charset + ";q=" + queryValue(q).String()
 	return AcceptCharsetOption{v}
 }
 
@@ -110,10 +104,7 @@ func (option AcceptEncodingOption) Encoding(encoding string, q float64) AcceptEn
 	if v != "" {
 		v += ", "
 	}
-	v += encoding
-	if q != 0 {
-		v += ";" + queryValue(q).String()
-	}
+	v += encoding + ";q=" + queryValue(q).String()
 	return AcceptEncodingOption{v}
 }
 
@@ -135,10 +126,7 @@ func (option AcceptLanguageOption) Language(language string, q float64) AcceptLa
 	if v != "" {
 		v += ", "
 	}
-	v += language
-	if q != 0 {
-		v += ";" + queryValue(q).String()
-	}
+	v += language + ";q=" + queryValue(q).String()
 	return AcceptLanguageOption{v}
 }
 
@@ -285,11 +273,11 @@ func (option ContentTypeOption) Boundary(boundary string) ContentTypeOption {
 
 // Cookieヘッダをセットする。
 func Cookie(cookie ...http.Cookie) Option {
-	v := make([]string, 0, len(cookie))
+	r := &http.Request{Header: make(http.Header)}
 	for i := range cookie {
-		v = append(v, cookie[i].String())
+		r.AddCookie(&cookie[i])
 	}
-	return Header("Cookie", strings.Join(v, "; "))
+	return Header("Cookie", r.Header.Get("Cookie"))
 }
 
 // Expectヘッダをセットする。
@@ -369,7 +357,7 @@ func IfMatch(etagValue ...string) Option {
 
 // If-Modified-Sinceヘッダをセットする。
 func IfModifiedSince(timestamp time.Time) Option {
-	return Header("If-Modified-Since", timestamp.Format(time.RFC1123))
+	return Header("If-Modified-Since", timestamp.UTC().Format(http.TimeFormat))
 }
 
 // If-None-Matchヘッダをセットする。
@@ -386,19 +374,22 @@ func IfNoneMatch(etagValue ...string) Option {
 }
 
 // If-Rangeヘッダをセットする。
-func IfRange(timestamp time.Time, etagValue string) Option {
+func IfRange(timestamp time.Time) Option {
 	return OptionFunc(func(r *Request) {
-		if etagValue != "*" {
-			etagValue = "\"" + etagValue + "\""
-		}
-		r.header.Set("If-Range", timestamp.Format(time.RFC1123))
-		r.header.Add("If-Range", etagValue)
+		r.header.Set("If-Range", timestamp.UTC().Format(http.TimeFormat))
+	})
+}
+
+// If-RangeヘッダにETagをセットする。
+func IfRangeETag(etagValue string) Option {
+	return OptionFunc(func(r *Request) {
+		r.header.Set("If-Range", "\""+etagValue+"\"")
 	})
 }
 
 // If-Unmodified-Sinceヘッダをセットする。
 func IfUnmodifiedSince(timestamp time.Time) Option {
-	return Header("If-Unmodified-Since", timestamp.Format(time.RFC1123))
+	return Header("If-Unmodified-Since", timestamp.UTC().Format(http.TimeFormat))
 }
 
 // Originヘッダをセットする。
@@ -423,7 +414,7 @@ func ProxyAuthorizationBearer(token string) Option {
 
 // Rangeヘッダをセットする。
 func Range(start int, end int) RangeOption {
-	return RangeOption{v: "bytes="}.And(start, end)
+	return RangeOption{}.And(start, end)
 }
 
 type RangeOption struct {
@@ -431,19 +422,21 @@ type RangeOption struct {
 }
 
 func (option RangeOption) Apply(r *Request) {
-	r.header.Set("Host", option.v)
+	r.header.Set("Range", option.v)
 }
 
 func (option RangeOption) And(start int, end int) RangeOption {
 	v := option.v
-	if v != "" {
+	if v == "" {
+		v = "bytes="
+	} else {
 		v += ", "
 	}
-	if start != 0 {
+	if start >= 0 {
 		v += strconv.Itoa(start)
 	}
 	v += "-"
-	if end != 0 {
+	if end >= 0 {
 		v += strconv.Itoa(end)
 	}
 	return RangeOption{v}

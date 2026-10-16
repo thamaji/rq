@@ -124,9 +124,13 @@ func AsResponseError(err error) (*ResponseError, bool) {
 }
 
 func MapResponseError(err error, fn func(*ResponseError) error) error {
+	if err == nil {
+		return err
+	}
+
 	e, ok := err.(*ResponseError)
 	if ok {
 		return fn(e)
 	}
-	return e
+	return err
 }

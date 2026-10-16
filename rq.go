@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	_url "net/url"
+	"strconv"
 )
 
 // GETメソッドのリクエストをつくる。
@@ -119,7 +120,7 @@ func (r *Request) Do() (*http.Response, error) {
 	}
 
 	if r.ctx != nil {
-		request.WithContext(r.ctx)
+		request = request.WithContext(r.ctx)
 	}
 
 	if request.Header == nil {
@@ -127,6 +128,23 @@ func (r *Request) Do() (*http.Response, error) {
 	}
 	for k, v := range r.header {
 		request.Header[k] = v
+
+		switch k {
+		case "Host":
+			if len(v) > 0 {
+				request.Host = v[0]
+			}
+		case "Content-Length":
+			if len(v) > 0 {
+				if contentLength, err := strconv.ParseInt(v[0], 10, 64); err == nil {
+					request.ContentLength = contentLength
+				}
+			}
+		}
+
+		if k == "Host" && len(v) > 0 {
+			request.Host = v[0]
+		}
 	}
 
 	for _, hook := range r.preHook {
